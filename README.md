@@ -11,24 +11,35 @@ $ mvn spring-boot:run
 $ mvn test
 ```
 ## Decisiones de diseño
+
 ### Necesidad 1 — Registro de asistencia
 
-Se aplicó el patrón Adapter.
 
-Existe una incompatibilidad directa de interfaces entre el contrato interno del sistema (ServicioAsistencia) y la API que expone el SDK del proveedor externo (QRCheckClient). Los tipos de datos, nombres de métodos, firmas y códigos de respuesta no coinciden, y ninguna de las dos partes puede modificarse directamente porque el código interno está en producción y la librería externa pertenece a un tercero.
+* **(1) ¿Cuál es el síntoma de diseño exacto que describe el enunciado?**
+  Existe una **incompatibilidad estructural directa entre interfaces**: el contrato interno del sistema (`ServicioAsistencia`) no coincide en nombres de métodos, tipos de parámetros, firmas ni estructuras de retorno con la API expuesta por el SDK de un proveedor externo (`QRCheckClient`). Además, ninguno de los dos contratos puede ser modificado directamente, ya que el código interno está desplegado en producción y la librería externa pertenece a un tercero.
 
-Se descartó la alternativa cercana Facade. La intención técnica de Facade es simplificar una interfaz compleja unificando el acceso a un subsistema compuesto por múltiples clases y capas. En este escenario no existe un subsistema complejo que unificar ni simplificar, sino una traducción 1 a 1 entre dos contratos de interfaz incompatibles (ServicioAsistencia hacia QRCheckClient). Por lo tanto, Facade no resuelve el problema de adaptar la firma entre los dos contratos existentes.
+* **(2) ¿Qué patrón(es) de los vistos en la guía de la unidad podrían encajar y por qué?**
+  Se aplicó el patrón **Adapter (Adaptador de Objetos)**. Es la solución adecuada porque actúa como un intermediario o puente que envuelve al cliente del SDK externo (`QRCheckClient`) y traduce dinámicamente sus llamadas, parámetros y respuestas para adaptarlos al contrato de la interfaz interna esperada (`ServicioAsistencia`), logrando la interoperabilidad sin alterar el código existente.
+
+* **(3) ¿Cuál alternativa se descarta y con qué argumento técnico?**
+  Se consideró y descartó la alternativa cercana **Facade (Fachada)**:
+  * **Argumento técnico:** La intención de *Facade* es proporcionar una interfaz unificada y simplificada sobre un subsistema complejo integrado por múltiples clases y componentes. En este escenario no hay un subsistema con múltiples capas que simplificar, sino la necesidad explícita de adaptar un único contrato hacia otro (traducción 1 a 1 entre `ServicioAsistencia` y `QRCheckClient`). 
+  * **Conclusión:** *Facade* cambiaría o crearía un nuevo punto de entrada en lugar de traducir exactamente las firmas del contrato que `ControladorCheckIn` ya exige usar en producción. Por ello, *Facade* no resuelve el problema de adaptar los contratos de interfaz existentes.
 
 ### Necesidad 2 — Emisión de certificados
-Se aplicó el patrón Facade.
 
-El controlador web (ControladorCertificados) sufría de un acoplamiento excesivo, ya que debía conocer, instanciar y orquestar directamente cuatro servicios distintos para ejecutar una sola tarea de negocio (emitir certificados). Esto saturaba la capa web con lógica de coordinación y obligaba a modificar la API pública si el flujo de emisión cambiaba.
+* **(1) ¿Cuál es el síntoma de diseño exacto que describe el enunciado?**
+  Existe un **acoplamiento excesivo en el cliente web** (`ControladorCertificados`), el cual debe conocer, instanciar y orquestar secuencialmente cuatro servicios independientes (`ValidadorAsistencia`, `GeneradorCertificadoPDF`, `FirmaDigitalService` y `EnvioCorreoService`) para ejecutar una única operación de negocio. Esto satura la capa de controladores con lógica de orquestación, violando la cohesión y exponiendo la complejidad interna del flujo de emisión.
 
-Se descartó la alternativa cercana Adapter. El patrón Adapter se utiliza cuando existe un problema de incompatibilidad de contratos o tipos. En la Necesidad 2 no hay ninguna interfaz incompatible que adaptar, ya que los cuatro servicios funcionan correctamente con sus APIs actuales; el problema radica en la cantidad de colaboradores que el cliente debe orquestar. Un Adapter no resolvería el problema porque su meta es traducir firmas de métodos y no simplificar la orquestación de múltiples servicios.
+* **(2) ¿Qué patrón(es) de los vistos en la guía de la unidad podrían encajar y por qué?**
+  Se aplicó el patrón **Facade (Fachada)** mediante la clase `FachadaCertificados`. Es el patrón indicado porque proporciona una interfaz unificada y simplificada sobre un subsistema compuesto por múltiples servicios colaboradores. La fachada encapsula la secuencia completa de emisión (validar, generar, firmar y enviar por correo), permitiendo que el controlador interactúe con un único punto de entrada simple y desacoplado.
+
+* **(3) ¿Cuál alternativa se descarta y con qué argumento técnico?**
+  Se consideró y descartó la alternativa cercana **Adapter (Adaptador)**:
+  * **Argumento técnico:** La intención técnica de *Adapter* es traducir y resolver incompatibilidades de contrato entre dos interfaces preexistentes que no pueden comunicarse directamente. En la Necesidad 2 no existen interfaces incompatibles ni errores de firmas entre clases, ya que los cuatro servicios funcionan correctamente con sus APIs actuales.
+  * **Conclusión:** Aplicar un *Adapter* no resuelve el problema central, ya que la meta no es modificar o adaptar las firmas individuales de cada servicio, sino ocultar la complejidad de orquestar múltiples colaboradores detrás de una sola abstracción de alto nivel. Por ello, *Adapter* resulta inadecuado.
 
 ### Necesidad 3 — Mejoras opcionales del certificado
-
-## Análisis de Diseño — Necesidad 3 (Punto de Decisión 3)
 
 ### (1) ¿Cuál es el síntoma de diseño exacto que describe el enunciado?
 El síntoma es la necesidad de agregar responsabilidades y funcionalidades opcionales a un objeto en tiempo de ejecución de manera dinámicamente combinable, sin incurrir en una explosión combinatoria de clases ni en la modificación del código base o contratos existentes.
@@ -55,7 +66,6 @@ Se creó un decorador base abstracto que implementa `ServicioCertificados` y sos
 
 ### Necesidad 4 — Control de acceso a la descarga masiva
 
-## Análisis de Diseño — Necesidad 4 (Punto de Decisión 4)
 
 ### (1) ¿Cuál es el síntoma de diseño exacto que describe el enunciado?
 El síntoma es la necesidad de **controlar y restringir el acceso a una operación costosa y restringida** (descarga/emisión masiva que consume límites del proveedor de firma digital) basándose en roles (`ORGANIZADOR` o `ADMIN`), sin que los clientes (como el front-end) tengan que modificar su contrato ni conocer las reglas de autenticación o límites del proveedor.
@@ -85,6 +95,7 @@ Aunque ambas soluciones envuelven un objeto que implementa `ServicioCertificados
 - Java 17, Spring Boot 3.2, Apache Maven, JUnit 5
 - VS Code o IntelliJ IDEA, Git, GitHub
 
+
 ## Conclusiones
 
-[Pendiente — Se redactará al finalizar ambas partes]
+La implementación de patrones estructurales en el proyecto ConfUDES demostró que el verdadero reto del diseño de software no radica en la complejidad de la estructura, sino en identificar con precisión la intención técnica de cada patrón según la necesidad del negocio. La principal dificultad consistió en diferenciar entre patrones con diagramas de clases casi idénticos, como Adapter frente a Facade o Decorator frente a Proxy, donde la clave para tomar la decisión correcta fue evaluar si el objetivo era traducir contratos, simplificar orquestaciones, añadir comportamiento dinámico en tiempo de ejecución o interceptar llamadas para proteger recursos costosos. Comprender este criterio permitió resolver problemas reales de integración con SDKs de terceros, control de acceso por roles y flexibilidad en la generación de certificados sin alterar el código existente ni incurrir en una explosión combinatoria de subclases. En conclusión, priorizar la composición sobre la herencia y adherirse al principio Open/Closed garantizó una arquitectura desacoplada, mantenible y altamente extensible ante futuros requerimientos.
