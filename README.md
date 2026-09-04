@@ -1,32 +1,44 @@
-# diaz-post1-u3-
-Post-contenido — Patrones Estructurales aplicados al backend de ConfUDES
+# Post-contenido — Unidad 3: Patrones Estructurales en ConfUDES
 
-Análisis de Diseño — Necesidad 1
-(1) ¿Cuál es el síntoma de diseño exacto que describe el enunciado?
-Existe una incompatibilidad directa de interfaces entre el contrato interno del sistema (ServicioAsistencia) y la API que expone el SDK del proveedor externo (QRCheckClient). Los tipos de datos, los nombres de los métodos, las firmas y los códigos de respuesta no coinciden. Además, ninguna de las dos partes puede modificarse directamente porque el código interno ya está en producción y la librería externa es de un tercero.
+## Descripción
+Repositorio del post-contenido de la Unidad 3 de Patrones de Diseño de Software. Un único proyecto Spring Boot (`confudes-patrones-estructurales`) que resuelve cuatro necesidades reales del backend de ConfUDES, una plataforma de gestión de congresos académicos: registro de asistencia con un proveedor externo, emisión de certificados, mejoras opcionales sobre el certificado emitido y control de acceso a la descarga masiva.
 
-(2) ¿Qué patrón(es) de los vistos en la guía de la unidad podrían encajar y por qué?
 
-Adapter: Encaja porque su propósito explícito es convertir la interfaz de una clase existente en otra interfaz que el cliente espera, permitiendo que dos clases con interfaces incompatibles colaboren sin modificar su código fuente.
+## Cómo ejecutar
+```
+$ mvn clean package
+$ mvn spring-boot:run
+$ mvn test
+```
+## Decisiones de diseño
+### Necesidad 1 — Registro de asistencia
 
-Facade: Podría considerarse bajo la idea intuitiva de envolver el cliente externo de QR dentro de una nueva clase.
+Se aplicó el patrón Adapter.
 
-(3) ¿Cuál de ellos se descarta y con qué argumento técnico, no solo intuitivo?
-Se descarta Facade. La intención técnica de Facade es simplificar una interfaz compleja unificando el acceso a un subsistema compuesto por múltiples clases, interfaces y capas. En este problema no existe un subsistema complejo que unificar ni simplificar, sino una traducción/adaptación 1 a 1 entre dos contratos de interfaz incompatibles (ServicioAsistencia hacia QRCheckClient). Por lo tanto, el patrón técnicamente adecuado es Adapter.
+Existe una incompatibilidad directa de interfaces entre el contrato interno del sistema (ServicioAsistencia) y la API que expone el SDK del proveedor externo (QRCheckClient). Los tipos de datos, nombres de métodos, firmas y códigos de respuesta no coinciden, y ninguna de las dos partes puede modificarse directamente porque el código interno está en producción y la librería externa pertenece a un tercero.
 
-Esta estructura responde punto por punto a lo que la rúbrica evalúa en el criterio de análisis escrito.
+Se descartó la alternativa cercana Facade. La intención técnica de Facade es simplificar una interfaz compleja unificando el acceso a un subsistema compuesto por múltiples clases y capas. En este escenario no existe un subsistema complejo que unificar ni simplificar, sino una traducción 1 a 1 entre dos contratos de interfaz incompatibles (ServicioAsistencia hacia QRCheckClient). Por lo tanto, Facade no resuelve el problema de adaptar la firma entre los dos contratos existentes.
 
-Análisis de Diseño — Necesidad 2
-(1) ¿Cuál es el síntoma de diseño exacto que describe el enunciado?
-El controlador web (ControladorCertificados) sufre de acoplamiento excesivo. Debe conocer, instanciar y orquestar directamente cuatro servicios distintos para ejecutar una sola tarea de negocio (emitir certificados). Esto satura la capa web con lógica de orquestación y obliga a modificar la API pública si el flujo de emisión cambia.
+### Necesidad 2 — Emisión de certificados
+Se aplicó el patrón Facade.
 
-(2) ¿Qué patrón(es) de los vistos en la guía de la unidad podrían encajar y por qué?
+El controlador web (ControladorCertificados) sufría de un acoplamiento excesivo, ya que debía conocer, instanciar y orquestar directamente cuatro servicios distintos para ejecutar una sola tarea de negocio (emitir certificados). Esto saturaba la capa web con lógica de coordinación y obligaba a modificar la API pública si el flujo de emisión cambiaba.
 
-Facade: Encaja perfectamente porque su intención es proporcionar una interfaz unificada y de alto nivel sobre un grupo de interfaces en un subsistema, simplificando el uso para el cliente.
+Se descartó la alternativa cercana Adapter. El patrón Adapter se utiliza cuando existe un problema de incompatibilidad de contratos o tipos. En la Necesidad 2 no hay ninguna interfaz incompatible que adaptar, ya que los cuatro servicios funcionan correctamente con sus APIs actuales; el problema radica en la cantidad de colaboradores que el cliente debe orquestar. Un Adapter no resolvería el problema porque su meta es traducir firmas de métodos y no simplificar la orquestación de múltiples servicios.
 
-Adapter: Podría considerarse bajo la falsa idea de "envolver" las llamadas a los cuatro servicios.
+### Necesidad 3 — Mejoras opcionales del certificado
+[Pendiente — Se completará en la Parte 2]
 
-(3) ¿Cuál de ellos se descarta y con qué argumento técnico, no solo intuitivo?
-Se descarta Adapter. El patrón Adapter se utiliza ante un problema de incompatibilidad de contratos o tipos. En la Necesidad 2 no hay ninguna interfaz incompatible que adaptar; los cuatro servicios funcionan correctamente con sus APIs actuales. El problema radica en la cantidad de colaboradores que el cliente debe conocer.
+### Necesidad 4 — Control de acceso a la descarga masiva
+[Pendiente — Se completará en la Parte 2]
 
-Por ende, un Adapter no resolvería la Necesidad 2 porque su meta es traducir firmas de métodos, no simplificar flujos complejos de múltiples servicios. Del mismo modo, un Facade no resolvería la Necesidad 1 porque no soluciona diferencias de firma entre dos contratos 1 a 1.
+### Reflexión — Composite y Flyweight (opcional)
+[Pendiente — Se completará en la Parte 2]
+
+## Herramientas utilizadas
+- Java 17, Spring Boot 3.2, Apache Maven, JUnit 5
+- VS Code o IntelliJ IDEA, Git, GitHub
+
+## Conclusiones
+
+[Pendiente — Se redactará al finalizar ambas partes]
